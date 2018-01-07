@@ -1,0 +1,83 @@
+library(sas7bdat)
+library(survival)
+library(flexsurv)
+library(survminer)
+library(dplyr)
+library(xtable)
+library(xlsx)
+library(tidyverse)
+
+katrina <- read.sas7bdat("C://Users/Jabari/Downloads/Katrina.sas7bdat")
+
+  
+#Create survival object, focusing only on flood failures (1)
+survival = Surv(time = katrina$hour, event = katrina$reason == c(2,3))
+
+#plot all four models together
+par(mfrow=c(2,2))
+
+#Weibull AFT model
+
+fit.weibull <- flexsurvreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age,   data = katrina, dist = "weibull")
+fit.weibull2 <- survreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age,   data = katrina, dist = "weibull")
+plot1 = plot(fit.weibull, type = "cumhaz", ci = TRUE, conf.int = FALSE, xlab = "Week", ylab = "Cumulative Hazard", main = "Weibull Distribution")
+summary(fit.weibull2)
+
+#Exponential AFT model
+fit.exponential <- flexsurvreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age,  data = katrina, dist = "exponential")
+fit.exponential2 <- survreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age, data = katrina, dist = "exponential")
+plot2 = plot(fit.exponential, type = "cumhaz", ci = TRUE, conf.int = FALSE,  xlab = "Week", ylab = "Cumulative Hazard", main = "Exponential Distribution")
+summary(fit.exponential2)
+
+#Log normal AFT model
+fit.lognormal <- flexsurvreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age, data = katrina, dist = "lognormal")
+fit.lognormal2 <- survreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age,    data = katrina, dist = "lognormal")
+plot3 = plot(fit.lognormal, type = "cumhaz", ci = TRUE, conf.int = FALSE,   xlab = "Week", ylab = "Cumulative Hazard", main = "Log Normal Distribution")
+summary(fit.lognormal2)
+
+#Log logistic AFT model
+fit.loglogistic <- flexsurvreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age,   data = katrina, dist = "llogis")
+fit.loglogistic2 <- survreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age,  data = katrina, dist = "loglogistic")
+plot4 = plot(fit.loglogistic, type = "cumhaz", ci = TRUE, conf.int = FALSE,  xlab = "Week", ylab = "Cumulative Hazard", main = "Log Logistic Distribution")
+summary(fit.loglogistic2)
+
+#Log normal AFT model
+fit.lognormal <- flexsurvreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age, data = katrina, dist = "lognormal")
+fit.lognormal2 <- survreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age,    data = katrina, dist = "lognormal")
+plot3 = plot(fit.lognormal, type = "cumhaz", ci = TRUE, conf.int = FALSE,   xlab = "Week", ylab = "Cumulative Hazard", main = "Log Normal Distribution")
+summary(fit.lognormal2)
+
+# Initial Cox Regression
+fit.cox <- coxph(Surv(hour, reason == 1) ~ backup + bridgecrane + servo + trashrack + elevation + slope + age, data = katrina)
+
+#Provides summary statistics for AFT and Cox regression
+summary(fit.loglogistic2)
+summary(fit.cox)
+
+
+#Gives proportion of people who did not survive
+nrow(filter(katrina, katrina$reason == c(2,3)))/nrow(katrina)
+
+#plot survival curve
+ggcoxadjustedcurves(fit.cox2, data = katrina)
+
+#####Schnoefeld Residuals#####
+coxresid <- residuals(fit.cox, type = c("schoenfeld"))
+plot(fit.cox, resid=TRUE)
+
+surv <- cox.zph(fit.cox)
+
+##Plots Schoenfeld Residuals for each variable
+par(mfrow=c(2,4), cex.lab = 1.5)
+
+i <- 1 
+for(i in 1:7){
+plot(surv, var=i)
+}
+
+
+
+# Cox model with h1-h48
+fit.cox2 <- coxph(Surv(start2, stop, reason %in% c(2,3)) ~ bridgecrane + backup + age + servo + trashrack + slope + elevation + running_12_straight, data = katrina3)
+summary(fit.cox2)
+
