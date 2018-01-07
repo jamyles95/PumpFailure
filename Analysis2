@@ -1,0 +1,61 @@
+library(haven) #reads sas files
+library(survival) #survival analysis
+library(flexsurv) #survival analysis w/ ability to plot
+#Read in sas dataset
+katrina = read_sas('C:\\Users\\Kirsty\\Documents\\MSA\\Fall 3\\Survival Analysis\\HW2\\katrina.sas7bdat')
+#Create survival object, focusing only on flood failures (1)
+survival = Surv(time = katrina$hour, event = katrina$reason == 1)
+#plot all four models together
+par(mfrow=c(2,2))
+
+
+############################
+#####     AFT Models   #####
+############################
+
+
+#Each model is created twice, once with flexsurvreg, which can be plotted, and once with survreg, which provides useful output when used with summary()
+#Weibull AFT model
+fit.weibull <- flexsurvreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age,   data = katrina, dist = "weibull")
+fit.weibull2 <- survreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age,   data = katrina, dist = "weibull")
+plot1 = plot(fit.weibull, type = "cumhaz", ci = TRUE, conf.int = FALSE, xlab = "Week", ylab = "Cumulative Hazard", main = "Weibull Distribution")
+summary(fit.weibull2)
+
+#Exponential AFT model
+fit.exponential <- flexsurvreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age,  data = katrina, dist = "exponential")
+fit.exponential2 <- survreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age, data = katrina, dist = "exponential")
+plot2 = plot(fit.exponential, type = "cumhaz", ci = TRUE, conf.int = FALSE,  xlab = "Week", ylab = "Cumulative Hazard", main = "Exponential Distribution")
+summary(fit.exponential2)
+
+#Log normal AFT model
+fit.lognormal <- flexsurvreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age, data = katrina, dist = "lognormal")
+fit.lognormal2 <- survreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age,    data = katrina, dist = "lognormal")
+plot3 = plot(fit.lognormal, type = "cumhaz", ci = TRUE, conf.int = FALSE,   xlab = "Week", ylab = "Cumulative Hazard", main = "Log Normal Distribution")
+summary(fit.lognormal2)
+
+#Log logistic AFT model
+fit.loglogistic <- flexsurvreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age,   data = katrina, dist = "llogis")
+fit.loglogistic2 <- survreg(survival ~ backup + bridgecrane + servo + trashrack + elevation + slope + age,  data = katrina, dist = "loglogistic")
+
+plot4 = plot(fit.loglogistic, type = "cumhaz", ci = TRUE, conf.int = FALSE,  xlab = "Week", ylab = "Cumulative Hazard", main = "Log Logistic Distribution")
+summary(fit.loglogistic2)
+
+
+
+############################
+#####   Which 20 pumps?   ##
+############################
+#create id variable for pumps
+katrina$id = c(1:770)
+
+#predictions for failure time using lognormal model
+pred.quantile <- predict(fit.lognormal2, type = "response", se.fit = TRUE)
+katrina$failuretime = pred.quantile$fit
+
+
+#create new dataset ordered by  failure time
+newkatrina = katrina[order(katrina$failuretime),]
+
+
+#top twenty pumps to replace
+print(newkatrina[1:20,c("id", "failuretime")])
